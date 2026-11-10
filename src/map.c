@@ -1,0 +1,52 @@
+/**
+ * @file map.c
+ * @brief 地图模块实现 - 初始化边界、放置食物、绘制地图
+ */
+#include "map.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+/* 地图数据（静态存储） */
+static char map[MAP_MAX_SIZE][MAP_MAX_SIZE];
+
+/* 获取地图数组指针 */
+char (*map_get_data(void))[MAP_MAX_SIZE]
+{
+    return map;
+}
+
+/* 初始化地图：绘制边界墙壁，随机放置食物 */
+void map_init(int width, int length, int food_count)
+{
+    int i, j, a, b;
+
+    /* 绘制边界和空白区域 */
+    for (i = 0; i <= width; i++) {
+        for (j = 0; j <= length; j++) {
+            if (i == 0 || i == width || j == 0 || j == length)
+                map[i][j] = '#'; /* 边界墙壁 */
+            else
+                map[i][j] = ' '; /* 空白区域 */
+        }
+    }
+
+    /* 随机放置食物 */
+    while (food_count-- > 0) {
+        /* 只放在内部区域，避免覆盖边界墙 */
+        a = 1 + rand() % (width - 2);
+        b = 1 + rand() % (length - 2);
+        map[a][b] = '*';
+    }
+}
+
+/* 在屏幕上打印整张地图 */
+void map_draw(int width, int length)
+{
+    int i, j;
+    for (i = 0; i <= width; i++) {
+        for (j = 0; j <= length; j++) {
+            printf("%c", map[i][j]);
+        }
+        printf("\n");
+    }
+}

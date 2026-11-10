@@ -1,0 +1,79 @@
+/**
+ * @file snake.c
+ * @brief 蛇身轨迹模块实现 - 使用循环队列管理轨迹节点
+ */
+#include "snake.h"
+#include "console.h"
+#include <stdio.h>
+
+/* 颜色表：碰撞后循环切换 */
+static const WORD color_table[] = {0x60, 0x70, 0x40, 0x30, 0x80};
+#define COLOR_COUNT 5
+
+/* 初始化蛇身管理器 */
+void snake_init(SnakeTrail *trail, int init_x, int init_y, int max_length)
+{
+    trail->step = 0;
+    trail->max_length = max_length;
+    trail->tail_active = 0;
+    trail->color_index = 0;
+    trail->nodes[0].x = init_x;
+    trail->nodes[0].y = init_y;
+}
+
+/* 移除蛇尾节点（循环队列尾部消除） */
+void snake_remove_tail(SnakeTrail *trail, char map[][MAP_MAX_SIZE])
+{
+    if (!trail->tail_active)
+        return;
+
+    /* 恢复默认颜色后清除尾部节点 */
+    console_reset_color();
+    console_gotoxy(trail->nodes[trail->step].y, trail->nodes[trail->step].x);
+    map[trail->nodes[trail->step].x][trail->nodes[trail->step].y]--;
+
+    /* 只有恢复到空白状态才真正清除显示，防止蛇身自交时误删 */
+    if (map[trail->nodes[trail->step].x][trail->nodes[trail->step].y] == ' ')
+        printf(" ");
+}
+
+/* 添加蛇头节点并处理食物碰撞 */
+void snake_add_head(SnakeTrail *trail, char map[][MAP_MAX_SIZE],
+                    int x, int y, int width)
+{
+    trail->nodes[trail->step].x = x;
+    trail->nodes[trail->step].y = y;
+
+    /* 检测是否吃到食物，增长蛇身 */
+    if (map[x][y] == '*') {
+        map[x][y] = ' ';
+        trail->max_length++;
+        console_gotoxy(2, width + 2);
+        console_reset_color();
+        printf("len:%5d", trail->max_length);
+    }
+
+    /* 设置颜色并绘制蛇头 */
+    snake_set_color(trail);
+    console_gotoxy(trail->nodes[trail->step].y, trail->nodes[trail->step].x);
+    map[x][y]++;
+    printf(" ");
+
+    /* 更新步数，检查是否需要开始消除尾部 */
+    trail->step++;
+    if (trail->step >= trail->max_length)
+        trail->tail_active = 1;
+    trail->step = trail->step % trail->max_length;
+}
+
+/* 根据当前颜色索引设置控制台颜色 */
+void snake_set_color(SnakeTrail *trail)
+{
+    console_set_color(color_table[trail->color_index]);
+}
+
+/* 碰撞后切换到下一个颜色 */
+void snake_next_color(SnakeTrail *trail)
+{
+    trail->color_index = (trail->color_index + 1) % COLOR_COUNT;
+}

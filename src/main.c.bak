@@ -1,0 +1,71 @@
+/**
+ * @file main.c
+ * @brief 抛物线Demo主程序入口
+ *
+ * 斜抛运动小demo：在控制台中模拟物理抛物线轨迹，
+ * 球体碰墙反弹并留下类贪吃蛇的彩色轨迹。
+ * 若要取消贪吃蛇模式请将 FOOD_COUNT 设为 0。
+ */
+#include "console.h"
+#include "physics.h"
+#include "map.h"
+#include "snake.h"
+#include <stdio.h>
+#include <windows.h>
+
+/* 发射角度：自右向上转角，0为水平出射，90为垂直上抛 */
+#define LAUNCH_ANGLE   70.0
+/* 初速度大小 */
+#define INIT_VELOCITY  25
+/* 初始蛇身最大长度 */
+#define INIT_MAX_LEN   60
+/* 主循环次数，可设为更大值 */
+#define LOOP_COUNT     10000
+
+int main(void)
+{
+    PhysicsState phys;
+    SnakeTrail trail;
+    char (*map)[MAP_MAX_SIZE];
+    int cnt = LOOP_COUNT;
+
+    /* 提示用户调整字号 */
+    printf("如果花屏则调整为18字号（不同电脑可能情况不同）\n按回车开始");
+    getchar();
+
+    /* 初始化控制台 */
+    console_hide_cursor();
+    console_gotoxy(0, 0);
+
+    /* 初始化并绘制地图 */
+    map_init(DEFAULT_WIDTH, DEFAULT_LENGTH, DEFAULT_FOOD_COUNT);
+    map_draw(DEFAULT_WIDTH, DEFAULT_LENGTH);
+    map = map_get_data();
+
+    /* 初始化物理状态：起始位置在左下方 */
+    physics_init(&phys, DEFAULT_WIDTH - 5, 4, INIT_VELOCITY, LAUNCH_ANGLE);
+
+    /* 初始化蛇身轨迹 */
+    snake_init(&trail, phys.old_x, phys.old_y, INIT_MAX_LEN);
+
+    /* 主循环 */
+    while (cnt--) {
+        /* 执行一步物理计算 */
+        physics_step(&phys);
+
+        /* 检测边界碰撞，碰撞时切换颜色 */
+        if (physics_check_boundary(&phys, DEFAULT_WIDTH, DEFAULT_LENGTH))
+            snake_next_color(&trail);
+
+        /* 消除蛇尾 */
+        snake_remove_tail(&trail, map);
+
+        /* 添加蛇头并渲染 */
+        snake_add_head(&trail, map, phys.old_x, phys.old_y, DEFAULT_WIDTH);
+
+        /* 延时控制帧率 */
+        Sleep(10);
+    }
+
+    return 0;
+}
